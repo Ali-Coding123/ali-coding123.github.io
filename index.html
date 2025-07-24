@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>News Blog with Search</title>
+  <title>News Blog - Titles Only</title>
   <link rel="icon" href="pixilart-drawing.png" type="image/png" />
   <style>
     body {
@@ -10,33 +10,6 @@
       max-width: 700px;
       margin: 30px auto;
       padding: 0 20px;
-    }
-    .article {
-      border-bottom: 1px solid #ccc;
-      padding: 15px 0;
-    }
-    .header {
-      font-weight: bold;
-      font-size: 1.2em;
-    }
-    .basic-info {
-      margin-bottom: 10px;
-    }
-    .inside {
-      font-style: italic;
-    }
-    #searchBar {
-      margin-bottom: 20px;
-      width: 100%;
-      padding: 8px;
-      font-size: 1em;
-      box-sizing: border-box;
-    }
-    #searchBtn {
-      padding: 8px 12px;
-      font-size: 1em;
-      cursor: pointer;
-      margin-left: 5px;
     }
     header {
       display: flex;
@@ -46,8 +19,22 @@
     }
     header img {
       width: 40px;
-      height: 58px; /* preserve your pixel art aspect ratio */
-      image-rendering: pixelated; /* keep pixel art crisp */
+      height: 58px; /* keep pixel art ratio */
+      image-rendering: pixelated;
+    }
+    header h1 {
+      margin: 0;
+    }
+    #articles a {
+      display: block;
+      font-weight: bold;
+      margin: 10px 0;
+      text-decoration: none;
+      color: #007acc;
+      cursor: pointer;
+    }
+    #articles a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -58,84 +45,22 @@
     <h1>News Blog</h1>
   </header>
 
-  <input type="text" id="searchBar" placeholder="Search titles..." />
-  <button id="searchBtn">Search</button>
-
   <div id="articles"></div>
 
-  <!-- Load the data file -->
   <script src="datas.js"></script>
-
   <script>
     const container = document.getElementById('articles');
-    const searchBar = document.getElementById('searchBar');
-    const searchBtn = document.getElementById('searchBtn');
 
-    function renderArticles(list) {
-      container.innerHTML = '';
-      if(list.length === 0){
-        container.innerHTML = '<p>No articles found.</p>';
-        return;
-      }
-      list.forEach(article => {
-        const articleDiv = document.createElement('div');
-        articleDiv.className = 'article';
+    // Sort articles by date descending
+    const sortedArticles = articlesData.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
 
-        articleDiv.innerHTML = `
-          <div class="header">${article.title} by ${article.author} --------- ${article.date}</div>
-          <div class="basic-info">${article.basicInfo}</div>
-          <div class="inside">${article.inside}</div>
-        `;
-        container.appendChild(articleDiv);
-      });
-    }
-
-    function sortByDateDesc(list) {
-      return list.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
-    }
-
-    function searchAndSortByRelevance(list, query) {
-      const q = query.toLowerCase();
-      function score(title) {
-        let s = 0;
-        let ti = 0;
-        for(let qi=0; qi < q.length; qi++) {
-          while(ti < title.length && title[ti].toLowerCase() !== q[qi]) {
-            ti++;
-          }
-          if(ti < title.length && title[ti].toLowerCase() === q[qi]) {
-            s++;
-            ti++;
-          }
-          else break;
-        }
-        return s;
-      }
-
-      return list
-        .map(article => ({article, score: score(article.title)}))
-        .filter(x => x.score > 0)
-        .sort((a,b) => b.score - a.score)
-        .map(x => x.article);
-    }
-
-    let currentArticles = sortByDateDesc(articlesData);
-    renderArticles(currentArticles);
-
-    function performSearch() {
-      const query = searchBar.value.trim();
-      if(query === '') {
-        currentArticles = sortByDateDesc(articlesData);
-        renderArticles(currentArticles);
-      } else {
-        const results = searchAndSortByRelevance(articlesData, query);
-        renderArticles(results);
-      }
-    }
-
-    searchBtn.addEventListener('click', performSearch);
-    searchBar.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter') performSearch();
+    // Render titles as links opening details page in new tab
+    sortedArticles.forEach((article, i) => {
+      const link = document.createElement('a');
+      link.href = `details.html?article=${i}`;
+      link.target = '_blank';
+      link.textContent = article.title;
+      container.appendChild(link);
     });
   </script>
 

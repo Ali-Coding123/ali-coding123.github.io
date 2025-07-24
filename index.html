@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>Divan-i Erkek-i Haber Sitesi</title>
+  <title>Haber Blogu - Başlıklar ve Makale Gönderimi</title>
   <link rel="icon" href="pixilart-drawing.png" type="image/png" />
   <style>
     body {
@@ -35,6 +35,57 @@
       cursor: pointer;
       margin-bottom: 20px;
     }
+    #submitArticleBtn {
+      display: inline-block;
+      padding: 10px 15px;
+      background-color: #007acc;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 15px;
+    }
+    #submitArticleBtn:hover {
+      background-color: #005f99;
+    }
+    #articleForm {
+      display: none;
+      margin-bottom: 30px;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 6px;
+      background-color: #f9f9f9;
+    }
+    #articleForm label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    #articleForm input[type="text"],
+    #articleForm textarea {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      margin-top: 5px;
+      font-size: 1em;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+    #articleForm button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #articleForm button:hover {
+      background-color: #1e7e34;
+    }
     .article-link {
       display: block;
       font-weight: bold;
@@ -51,16 +102,40 @@
       font-size: 0.9em;
       margin-left: 10px;
     }
+    #message {
+      margin-bottom: 15px;
+      font-weight: bold;
+      color: green;
+    }
   </style>
 </head>
 <body>
 
   <header>
     <img src="pixilart-drawing.png" alt="Site Icon" />
-    <h1>HABERLER</h1>
+    <h1>Haber Blogu</h1>
   </header>
 
-  <input type="text" id="searchBar" placeholder="Haber/Makale aratın..." />
+  <button id="submitArticleBtn">Kendi Makaleni Yaz</button>
+
+  <form id="articleForm">
+    <div id="message"></div>
+    <label for="authorInput">Adınız:</label>
+    <input type="text" id="authorInput" required />
+
+    <label for="titleInput">Makale Başlığı:</label>
+    <input type="text" id="titleInput" required />
+
+    <label for="basicInfoInput">Temel Bilgi:</label>
+    <textarea id="basicInfoInput" rows="3" required></textarea>
+
+    <label for="insideInput">İçerik:</label>
+    <textarea id="insideInput" rows="6" required></textarea>
+
+    <button type="submit">Gönder</button>
+  </form>
+
+  <input type="text" id="searchBar" placeholder="Başlıklarda ara..." />
   <button id="searchBtn">Ara</button>
 
   <div id="articles"></div>
@@ -71,19 +146,33 @@
     const searchBar = document.getElementById('searchBar');
     const searchBtn = document.getElementById('searchBtn');
 
-    // Sort by date descending
-    const sortedArticles = articlesData.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+    const submitArticleBtn = document.getElementById('submitArticleBtn');
+    const articleForm = document.getElementById('articleForm');
+    const messageDiv = document.getElementById('message');
 
+    const authorInput = document.getElementById('authorInput');
+    const titleInput = document.getElementById('titleInput');
+    const basicInfoInput = document.getElementById('basicInfoInput');
+    const insideInput = document.getElementById('insideInput');
+
+    // Copy of articlesData we can add to (local, won't persist after refresh)
+    let localArticles = articlesData.slice();
+
+    // Sort articles by date descending (newest first)
+    function sortArticles(list) {
+      return list.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+    }
+
+    // Render clickable article links with dates
     function renderArticleLinks(list) {
       container.innerHTML = '';
-      if (list.length === 0) {
-        container.innerHTML = '<p>No matching articles found.</p>';
+      if(list.length === 0) {
+        container.innerHTML = '<p>Uygun makale bulunamadı.</p>';
         return;
       }
-
-      list.forEach((article, index) => {
+      list.forEach((article, i) => {
         const link = document.createElement('a');
-        link.href = `details.html?article=${index}`;
+        link.href = `details.html?article=${i}`;
         link.target = '_blank';
         link.className = 'article-link';
         link.innerHTML = `${article.title} <span class="date">${article.date}</span>`;
@@ -91,13 +180,12 @@
       });
     }
 
-    // Simple fuzzy match scoring
+    // Simple fuzzy scoring for search
     function scoreMatch(title, query) {
-      let score = 0;
-      let ti = 0;
-      for (let qi = 0; qi < query.length; qi++) {
-        while (ti < title.length && title[ti].toLowerCase() !== query[qi]) ti++;
-        if (ti < title.length) {
+      let score = 0, ti = 0;
+      for(let qi=0; qi < query.length; qi++) {
+        while(ti < title.length && title[ti].toLowerCase() !== query[qi]) ti++;
+        if(ti < title.length) {
           score++;
           ti++;
         }
@@ -105,34 +193,78 @@
       return score;
     }
 
+    // Perform search and show results
     function performSearch() {
       const query = searchBar.value.trim().toLowerCase();
-      if (query === '') {
-        renderArticleLinks(sortedArticles);
+      if(query === '') {
+        renderArticleLinks(sortArticles(localArticles));
         return;
       }
 
-      const scored = sortedArticles
+      const scored = sortArticles(localArticles)
         .map((article, index) => ({
           article,
           index,
           score: scoreMatch(article.title.toLowerCase(), query)
         }))
         .filter(x => x.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map(x => ({ ...x.article, __index: x.index }));
+        .sort((a,b) => b.score - a.score)
+        .map(x => x.article);
 
-      renderArticleLinks(scored.map(a => ({ ...a, title: a.title, date: a.date })));
+      renderArticleLinks(scored);
     }
 
+    // Show/hide form toggle
+    submitArticleBtn.addEventListener('click', () => {
+      if(articleForm.style.display === 'none' || articleForm.style.display === '') {
+        articleForm.style.display = 'block';
+        messageDiv.textContent = '';
+      } else {
+        articleForm.style.display = 'none';
+      }
+    });
+
+    // Handle form submission
+    articleForm.addEventListener('submit', e => {
+      e.preventDefault();
+
+      // Basic validation done by required attribute, just gather data
+      const newArticle = {
+        author: authorInput.value.trim(),
+        title: titleInput.value.trim(),
+        basicInfo: basicInfoInput.value.trim(),
+        inside: insideInput.value.trim(),
+        date: new Date().toISOString().slice(0,10) // today's date YYYY-MM-DD
+      };
+
+      // Add to local array (no server-side storage)
+      localArticles.push(newArticle);
+
+      // Clear form inputs
+      authorInput.value = '';
+      titleInput.value = '';
+      basicInfoInput.value = '';
+      insideInput.value = '';
+
+      messageDiv.style.color = 'green';
+      messageDiv.textContent = 'Makaleniz başarıyla gönderildi!';
+
+      // Hide form after submission (optional)
+      // articleForm.style.display = 'none';
+
+      // Refresh displayed list with new article included
+      renderArticleLinks(sortArticles(localArticles));
+    });
+
     searchBtn.addEventListener('click', performSearch);
-    searchBar.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') performSearch();
+    searchBar.addEventListener('keydown', e => {
+      if(e.key === 'Enter') performSearch();
     });
 
     // Initial render
-    renderArticleLinks(sortedArticles);
+    renderArticleLinks(sortArticles(localArticles));
   </script>
 
 </body>
 </html>
+

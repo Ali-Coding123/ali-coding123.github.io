@@ -19,55 +19,82 @@
     }
     .basic-info, .inside {
       margin-bottom: 15px;
-      white-space: pre-wrap;
     }
     #comments {
       margin-top: 40px;
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
     }
     #comments h2 {
       margin-bottom: 10px;
     }
-    #commentList {
-      margin-bottom: 20px;
-      max-height: 200px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      padding: 10px;
-      background: #f9f9f9;
-    }
     .comment {
-      border-bottom: 1px solid #ddd;
-      padding: 8px 0;
+      border-top: 1px solid #ccc;
+      padding: 10px 0;
     }
-    #commentInput {
+    .comment-header {
+      font-weight: bold;
+      font-size: 0.9em;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    #commentForm {
+      margin-top: 30px;
+      border: 1px solid #ccc;
+      padding: 15px;
+      border-radius: 6px;
+      background-color: #f9f9f9;
+    }
+    #commentForm label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    #commentForm input[type="text"],
+    #commentForm textarea {
       width: 100%;
-      height: 80px;
       padding: 8px;
       box-sizing: border-box;
+      margin-top: 5px;
       font-size: 1em;
-      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      resize: vertical;
     }
-    #addCommentBtn {
-      padding: 10px 20px;
-      font-size: 1em;
+    #commentForm button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
       cursor: pointer;
+    }
+    #commentForm button:hover {
+      background-color: #1e7e34;
     }
   </style>
 </head>
 <body>
 
   <div id="content">
-    <p>Makale yükleniyor...</p>
+    <p>Yükleniyor...</p>
   </div>
 
-  <div id="comments" style="display:none;">
+  <div id="comments">
     <h2>Yorumlar</h2>
     <div id="commentList"></div>
-    <textarea id="commentInput" placeholder="Yorumunuzu buraya yazın..."></textarea><br />
-    <button id="addCommentBtn">Yorumu Ekle</button>
   </div>
+
+  <form id="commentForm">
+    <h3>Yeni Yorum Ekle</h3>
+    <label for="comName">Adınız:</label>
+    <input type="text" id="comName" required />
+
+    <label for="comText">Yorumunuz:</label>
+    <textarea id="comText" rows="4" required></textarea>
+
+    <button type="submit">Gönder</button>
+  </form>
 
   <script src="datas.js"></script>
   <script>
@@ -76,86 +103,73 @@
       return urlParams.get(param);
     }
 
-    function loadStoredArticles() {
-      const stored = localStorage.getItem('addedArticles');
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch {
-          return [];
-        }
-      }
-      return [];
-    }
-
-    const articlesDataAll = articlesData.concat(loadStoredArticles());
     const articleIndex = getQueryParam('article');
     const contentDiv = document.getElementById('content');
+    const commentListDiv = document.getElementById('commentList');
+    const commentForm = document.getElementById('commentForm');
+    const comNameInput = document.getElementById('comName');
+    const comTextInput = document.getElementById('comText');
 
-    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= articlesDataAll.length) {
+    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= articlesData.length) {
       contentDiv.innerHTML = '<p>Geçersiz veya eksik makale numarası.</p>';
+      commentForm.style.display = 'none';
     } else {
-      const article = articlesDataAll[articleIndex];
+      const article = articlesData[articleIndex];
       contentDiv.innerHTML = `
         <h1>${article.title}</h1>
         <div class="meta">Yazar: ${article.author} — Tarih: ${article.date}</div>
-        <div class="basic-info"><strong>Özet:</strong><br>${article.basicInfo.replace(/\n/g, '<br>')}</div>
-        <div class="inside"><strong>İçerik:</strong><br>${article.inside.replace(/\n/g, '<br>')}</div>
+        <div class="basic-info"><strong>Temel Bilgi:</strong> ${article.basicInfo}</div>
+        <div class="inside"><strong>İçerik:</strong> ${article.inside}</div>
       `;
 
-      // Show comments section
-      const commentsSection = document.getElementById('comments');
-      commentsSection.style.display = 'block';
+      // Load comments from localStorage
+      const storageKey = `comments_article_${articleIndex}`;
+      let comments = JSON.parse(localStorage.getItem(storageKey)) || [];
 
-      // Load and display comments
-      const commentList = document.getElementById('commentList');
-      const commentInput = document.getElementById('commentInput');
-      const addCommentBtn = document.getElementById('addCommentBtn');
-
-      function loadComments() {
-        const key = 'comments_article_' + articleIndex;
-        const storedComments = localStorage.getItem(key);
-        let comments = [];
-        if (storedComments) {
-          try {
-            comments = JSON.parse(storedComments);
-          } catch {}
+      function renderComments() {
+        if(comments.length === 0) {
+          commentListDiv.innerHTML = '<p>Henüz yorum yok.</p>';
+          return;
         }
-        commentList.innerHTML = '';
-        if(comments.length === 0){
-          commentList.innerHTML = '<p>Henüz yorum yok.</p>';
-        } else {
-          comments.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'comment';
-            div.textContent = c;
-            commentList.appendChild(div);
-          });
-        }
+        commentListDiv.innerHTML = '';
+        comments.forEach(c => {
+          const div = document.createElement('div');
+          div.className = 'comment';
+          div.innerHTML = `<div class="comment-header">${c.name}, ${c.date}</div><div>${c.text}</div>`;
+          commentListDiv.appendChild(div);
+        });
       }
 
-      function saveComment(comment) {
-        const key = 'comments_article_' + articleIndex;
-        let comments = [];
-        const storedComments = localStorage.getItem(key);
-        if (storedComments) {
-          try {
-            comments = JSON.parse(storedComments);
-          } catch {}
-        }
-        comments.push(comment);
-        localStorage.setItem(key, JSON.stringify(comments));
-      }
+      renderComments();
 
-      addCommentBtn.addEventListener('click', () => {
-        const comment = commentInput.value.trim();
-        if(comment === '') return;
-        saveComment(comment);
-        commentInput.value = '';
-        loadComments();
+      commentForm.addEventListener('submit', e => {
+        e.preventDefault();
+
+        const name = comNameInput.value.trim();
+        const text = comTextInput.value.trim();
+        if(!name || !text) return;
+
+        const now = new Date();
+        const formattedDate = now.toLocaleString('tr-TR', {
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        });
+
+        comments.push({
+          name,
+          text,
+          date: formattedDate
+        });
+
+        // Save back to localStorage
+        localStorage.setItem(storageKey, JSON.stringify(comments));
+
+        // Clear inputs
+        comNameInput.value = '';
+        comTextInput.value = '';
+
+        renderComments();
       });
-
-      loadComments();
     }
   </script>
 

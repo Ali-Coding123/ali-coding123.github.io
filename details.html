@@ -98,23 +98,45 @@
 
   <script src="datas.js"></script>
   <script>
+    // Helper to get URL param
     function getQueryParam(param) {
       const urlParams = new URLSearchParams(window.location.search);
       return urlParams.get(param);
     }
 
-    const articleIndex = getQueryParam('article');
     const contentDiv = document.getElementById('content');
     const commentListDiv = document.getElementById('commentList');
     const commentForm = document.getElementById('commentForm');
     const comNameInput = document.getElementById('comName');
     const comTextInput = document.getElementById('comText');
 
-    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= articlesData.length) {
-      contentDiv.innerHTML = '<p>Geçersiz veya eksik makale numarası.</p>';
+    // Load user added articles safely from localStorage
+    let storedArticles = [];
+    try {
+      storedArticles = JSON.parse(localStorage.getItem('userArticles')) || [];
+    } catch {
+      storedArticles = [];
+    }
+
+    // Combine static and user articles
+    const fullArticles = articlesData.concat(storedArticles);
+
+    // Get article index from URL
+    const articleIndexRaw = getQueryParam('article');
+    const articleIndex = articleIndexRaw !== null ? parseInt(articleIndexRaw, 10) : null;
+
+    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= fullArticles.length) {
+      // Invalid index: clear stored articles and show message
+      localStorage.removeItem('userArticles');
+
+      contentDiv.innerHTML = `
+        <p>Geçersiz veya eksik makale numarası. Kaydedilen makaleler temizlendi.</p>
+        <p>Lütfen <a href="index.html">ana sayfaya dönün</a> ve tekrar deneyin.</p>
+      `;
       commentForm.style.display = 'none';
     } else {
-      const article = articlesData[articleIndex];
+      // Valid article - show details
+      const article = fullArticles[articleIndex];
       contentDiv.innerHTML = `
         <h1>${article.title}</h1>
         <div class="meta">Yazar: ${article.author} — Tarih: ${article.date}</div>
@@ -122,7 +144,7 @@
         <div class="inside"><strong>İçerik:</strong> ${article.inside}</div>
       `;
 
-      // Load comments from localStorage
+      // Load comments for this article from localStorage
       const storageKey = `comments_article_${articleIndex}`;
       let comments = JSON.parse(localStorage.getItem(storageKey)) || [];
 
@@ -142,6 +164,7 @@
 
       renderComments();
 
+      // Handle new comment submission
       commentForm.addEventListener('submit', e => {
         e.preventDefault();
 
@@ -161,7 +184,7 @@
           date: formattedDate
         });
 
-        // Save back to localStorage
+        // Save comments to localStorage
         localStorage.setItem(storageKey, JSON.stringify(comments));
 
         // Clear inputs
@@ -175,3 +198,4 @@
 
 </body>
 </html>
+

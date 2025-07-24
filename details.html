@@ -19,13 +19,14 @@
     }
     .basic-info, .inside {
       margin-bottom: 15px;
+      white-space: pre-wrap; /* preserve line breaks */
     }
   </style>
 </head>
 <body>
 
   <div id="content">
-    <p>Makale yükleniyor . . .</p>
+    <p>Makale yükleniyor . . . </p>
   </div>
 
   <script src="datas.js"></script>
@@ -35,20 +36,38 @@
       return urlParams.get(param);
     }
 
+    // Load stored articles from localStorage
+    function loadStoredArticles() {
+      const stored = localStorage.getItem('addedArticles');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    }
+
+    // Merge original and stored articles
+    const articlesDataAll = articlesData.concat(loadStoredArticles());
+
     const articleIndex = getQueryParam('article');
     const contentDiv = document.getElementById('content');
 
-    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= articlesData.length) {
-      contentDiv.innerHTML = '<p>Invalid or missing article index.</p>';
+    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= articlesDataAll.length) {
+      contentDiv.innerHTML = '<p>MAKALE BULUNAMADI</p>';
     } else {
-      const article = articlesData[articleIndex];
+      const article = articlesDataAll[articleIndex];
       contentDiv.innerHTML = `
         <h1>${article.title}</h1>
         <div class="meta"> ${article.author} tarafından — ${article.date}</div>
-        <div class="basic-info"><strong>Açıklama :</strong> ${article.basicInfo}</div>
-        <div class="inside"><strong>İçindekiler :</strong> ${article.inside}</div>
+        <div class="basic-info"><strong>Ön İçerik : </strong><br>${article.basicInfo.replace(/\n/g, '<br>')}</div>
+        <div class="inside"><strong>İçerik : </strong><br>${article.inside.replace(/\n/g, '<br>')}</div>
       `;
     }
   </script>
+
 </body>
 </html>
+

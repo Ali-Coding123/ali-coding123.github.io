@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Divan-i Erkek-i Haber Sitesi</title>
@@ -35,57 +35,6 @@
       cursor: pointer;
       margin-bottom: 20px;
     }
-    #submitArticleBtn {
-      display: inline-block;
-      padding: 10px 15px;
-      background-color: #007acc;
-      color: white;
-      font-weight: bold;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-bottom: 15px;
-    }
-    #submitArticleBtn:hover {
-      background-color: #005f99;
-    }
-    #articleForm {
-      display: none;
-      margin-bottom: 30px;
-      border: 1px solid #ccc;
-      padding: 15px;
-      border-radius: 6px;
-      background-color: #f9f9f9;
-    }
-    #articleForm label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    #articleForm input[type="text"],
-    #articleForm textarea {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-      margin-top: 5px;
-      font-size: 1em;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      resize: vertical;
-    }
-    #articleForm button {
-      margin-top: 15px;
-      padding: 10px 15px;
-      background-color: #28a745;
-      color: white;
-      font-weight: bold;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #articleForm button:hover {
-      background-color: #1e7e34;
-    }
     .article-link {
       display: block;
       font-weight: bold;
@@ -102,10 +51,20 @@
       font-size: 0.9em;
       margin-left: 10px;
     }
-    #message {
-      margin-bottom: 15px;
-      font-weight: bold;
-      color: green;
+    form h2 {
+      margin-top: 40px;
+    }
+    form input, form textarea {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    form button {
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -113,32 +72,23 @@
 
   <header>
     <img src="pixilart-drawing.png" alt="Site Icon" />
-    <h1>Haber Blogu</h1>
+    <h1>News Blog</h1>
   </header>
 
-  <button id="submitArticleBtn">Kendi Makaleni Yaz</button>
-
-  <form id="articleForm">
-    <div id="message"></div>
-    <label for="authorInput">Adınız:</label>
-    <input type="text" id="authorInput" required />
-
-    <label for="titleInput">Makale Başlığı:</label>
-    <input type="text" id="titleInput" required />
-
-    <label for="basicInfoInput">Temel Bilgi:</label>
-    <textarea id="basicInfoInput" rows="3" required></textarea>
-
-    <label for="insideInput">İçerik:</label>
-    <textarea id="insideInput" rows="6" required></textarea>
-
-    <button type="submit">Gönder</button>
-  </form>
-
-  <input type="text" id="searchBar" placeholder="Başlıklarda ara..." />
-  <button id="searchBtn">Ara</button>
+  <input type="text" id="searchBar" placeholder="Search titles..." />
+  <button id="searchBtn">Makale arayın ...</button>
 
   <div id="articles"></div>
+
+  <h2>Yeni Makale Ekle</h2>
+  <form id="addArticleForm">
+    <input type="text" id="newTitle" placeholder="Title" required />
+    <input type="text" id="newAuthor" placeholder="Author" required />
+    <input type="date" id="newDate" required />
+    <textarea id="newBasicInfo" placeholder="Basic Info" rows="3" required></textarea>
+    <textarea id="newInside" placeholder="Inside Content" rows="5" required></textarea>
+    <button type="submit">Makaleyi Ekle</button>
+  </form>
 
   <script src="datas.js"></script>
   <script>
@@ -146,30 +96,37 @@
     const searchBar = document.getElementById('searchBar');
     const searchBtn = document.getElementById('searchBtn');
 
-    const submitArticleBtn = document.getElementById('submitArticleBtn');
-    const articleForm = document.getElementById('articleForm');
-    const messageDiv = document.getElementById('message');
+    // Load stored articles from localStorage
+    function loadStoredArticles() {
+      const stored = localStorage.getItem('addedArticles');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    }
 
-    const authorInput = document.getElementById('authorInput');
-    const titleInput = document.getElementById('titleInput');
-    const basicInfoInput = document.getElementById('basicInfoInput');
-    const insideInput = document.getElementById('insideInput');
+    // Save added articles to localStorage
+    function saveStoredArticles(articles) {
+      localStorage.setItem('addedArticles', JSON.stringify(articles));
+    }
 
-    // Copy of articlesData we can add to (local, won't persist after refresh)
-    let localArticles = articlesData.slice();
-
-    // Sort articles by date descending (newest first)
-    function sortArticles(list) {
-      return list.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+    // Merge original + stored articles
+    function getAllArticles() {
+      return articlesData.concat(loadStoredArticles());
     }
 
     // Render clickable article links with dates
     function renderArticleLinks(list) {
       container.innerHTML = '';
-      if(list.length === 0) {
-        container.innerHTML = '<p>Uygun makale bulunamadı.</p>';
+      if (list.length === 0) {
+        container.innerHTML = '<p>No matching articles found.</p>';
         return;
       }
+
       list.forEach((article, i) => {
         const link = document.createElement('a');
         link.href = `details.html?article=${i}`;
@@ -180,12 +137,13 @@
       });
     }
 
-    // Simple fuzzy scoring for search
+    // Simple fuzzy match scoring
     function scoreMatch(title, query) {
-      let score = 0, ti = 0;
-      for(let qi=0; qi < query.length; qi++) {
-        while(ti < title.length && title[ti].toLowerCase() !== query[qi]) ti++;
-        if(ti < title.length) {
+      let score = 0;
+      let ti = 0;
+      for (let qi = 0; qi < query.length; qi++) {
+        while (ti < title.length && title[ti].toLowerCase() !== query[qi]) ti++;
+        if (ti < title.length) {
           score++;
           ti++;
         }
@@ -193,78 +151,60 @@
       return score;
     }
 
-    // Perform search and show results
     function performSearch() {
       const query = searchBar.value.trim().toLowerCase();
-      if(query === '') {
-        renderArticleLinks(sortArticles(localArticles));
+      let allArticles = getAllArticles();
+
+      // Sort by date descending
+      allArticles = allArticles.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      if (query === '') {
+        renderArticleLinks(allArticles);
         return;
       }
 
-      const scored = sortArticles(localArticles)
+      const scored = allArticles
         .map((article, index) => ({
           article,
           index,
           score: scoreMatch(article.title.toLowerCase(), query)
         }))
         .filter(x => x.score > 0)
-        .sort((a,b) => b.score - a.score)
+        .sort((a, b) => b.score - a.score)
         .map(x => x.article);
 
       renderArticleLinks(scored);
     }
 
-    // Show/hide form toggle
-    submitArticleBtn.addEventListener('click', () => {
-      if(articleForm.style.display === 'none' || articleForm.style.display === '') {
-        articleForm.style.display = 'block';
-        messageDiv.textContent = '';
-      } else {
-        articleForm.style.display = 'none';
-      }
+    searchBtn.addEventListener('click', performSearch);
+    searchBar.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') performSearch();
     });
 
-    // Handle form submission
-    articleForm.addEventListener('submit', e => {
+    // Initial render on page load
+    performSearch();
+
+    // Add article form logic
+    const form = document.getElementById('addArticleForm');
+    form.addEventListener('submit', e => {
       e.preventDefault();
 
-      // Basic validation done by required attribute, just gather data
       const newArticle = {
-        author: authorInput.value.trim(),
-        title: titleInput.value.trim(),
-        basicInfo: basicInfoInput.value.trim(),
-        inside: insideInput.value.trim(),
-        date: new Date().toISOString().slice(0,10) // today's date YYYY-MM-DD
+        title: document.getElementById('newTitle').value.trim(),
+        author: document.getElementById('newAuthor').value.trim(),
+        date: document.getElementById('newDate').value,
+        basicInfo: document.getElementById('newBasicInfo').value.trim(),
+        inside: document.getElementById('newInside').value.trim(),
       };
 
-      // Add to local array (no server-side storage)
-      localArticles.push(newArticle);
+      const storedArticles = loadStoredArticles();
+      storedArticles.push(newArticle);
+      saveStoredArticles(storedArticles);
 
-      // Clear form inputs
-      authorInput.value = '';
-      titleInput.value = '';
-      basicInfoInput.value = '';
-      insideInput.value = '';
-
-      messageDiv.style.color = 'green';
-      messageDiv.textContent = 'Makaleniz başarıyla gönderildi!';
-
-      // Hide form after submission (optional)
-      // articleForm.style.display = 'none';
-
-      // Refresh displayed list with new article included
-      renderArticleLinks(sortArticles(localArticles));
+      performSearch(); // Re-render list including new article
+      form.reset();
     });
-
-    searchBtn.addEventListener('click', performSearch);
-    searchBar.addEventListener('keydown', e => {
-      if(e.key === 'Enter') performSearch();
-    });
-
-    // Initial render
-    renderArticleLinks(sortArticles(localArticles));
   </script>
 
 </body>
 </html>
-

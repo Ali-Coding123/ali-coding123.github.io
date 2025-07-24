@@ -19,13 +19,23 @@
     }
     header img {
       width: 40px;
-      height: 58px; /* keep pixel art ratio */
+      height: 58px;
       image-rendering: pixelated;
     }
-    header h1 {
-      margin: 0;
+    #searchBar {
+      width: 100%;
+      padding: 8px;
+      font-size: 1em;
+      box-sizing: border-box;
+      margin-bottom: 10px;
     }
-    #articles a {
+    #searchBtn {
+      padding: 8px 12px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .article-link {
       display: block;
       font-weight: bold;
       margin: 10px 0;
@@ -33,8 +43,13 @@
       color: #007acc;
       cursor: pointer;
     }
-    #articles a:hover {
+    .article-link:hover {
       text-decoration: underline;
+    }
+    .date {
+      color: gray;
+      font-size: 0.9em;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -45,23 +60,78 @@
     <h1>News Blog</h1>
   </header>
 
+  <input type="text" id="searchBar" placeholder="Search titles..." />
+  <button id="searchBtn">Search</button>
+
   <div id="articles"></div>
 
   <script src="datas.js"></script>
   <script>
     const container = document.getElementById('articles');
+    const searchBar = document.getElementById('searchBar');
+    const searchBtn = document.getElementById('searchBtn');
 
-    // Sort articles by date descending
+    // Sort by date descending
     const sortedArticles = articlesData.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
 
-    // Render titles as links opening details page in new tab
-    sortedArticles.forEach((article, i) => {
-      const link = document.createElement('a');
-      link.href = `details.html?article=${i}`;
-      link.target = '_blank';
-      link.textContent = article.title;
-      container.appendChild(link);
+    function renderArticleLinks(list) {
+      container.innerHTML = '';
+      if (list.length === 0) {
+        container.innerHTML = '<p>No matching articles found.</p>';
+        return;
+      }
+
+      list.forEach((article, index) => {
+        const link = document.createElement('a');
+        link.href = `details.html?article=${index}`;
+        link.target = '_blank';
+        link.className = 'article-link';
+        link.innerHTML = `${article.title} <span class="date">${article.date}</span>`;
+        container.appendChild(link);
+      });
+    }
+
+    // Simple fuzzy match scoring
+    function scoreMatch(title, query) {
+      let score = 0;
+      let ti = 0;
+      for (let qi = 0; qi < query.length; qi++) {
+        while (ti < title.length && title[ti].toLowerCase() !== query[qi]) ti++;
+        if (ti < title.length) {
+          score++;
+          ti++;
+        }
+      }
+      return score;
+    }
+
+    function performSearch() {
+      const query = searchBar.value.trim().toLowerCase();
+      if (query === '') {
+        renderArticleLinks(sortedArticles);
+        return;
+      }
+
+      const scored = sortedArticles
+        .map((article, index) => ({
+          article,
+          index,
+          score: scoreMatch(article.title.toLowerCase(), query)
+        }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(x => ({ ...x.article, __index: x.index }));
+
+      renderArticleLinks(scored.map(a => ({ ...a, title: a.title, date: a.date })));
+    }
+
+    searchBtn.addEventListener('click', performSearch);
+    searchBar.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') performSearch();
     });
+
+    // Initial render
+    renderArticleLinks(sortedArticles);
   </script>
 
 </body>

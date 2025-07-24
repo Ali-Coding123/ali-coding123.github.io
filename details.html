@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Article Details</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .meta {
+      color: gray;
+      margin-bottom: 20px;
+    }
+    .basic-info, .inside {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="content">
+    <p>Loading article...</p>
+  </div>
+
+  <script src="datas.js"></script>
+  <script>
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
+    }
+
+    const articleIndex = getQueryParam('article');
+    const contentDiv = document.getElementById('content');
+
+    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= articlesData.length) {
+      contentDiv.innerHTML = '<p>Invalid or missing article index.</p>';
+    } else {
+      const article = articlesData[articleIndex];
+      contentDiv.innerHTML = `
+        <h1>${article.title}</h1>
+        <div class="meta">By ${article.author} — ${article.date}</div>
+        <div class="basic-info"><strong>Basic Info:</strong> ${article.basicInfo}</div>
+        <div class="inside"><strong>Inside:</strong> ${article.inside}</div>
+      `;
+    }
+  </script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>News Blog with Search</title>
+  <link rel="icon" href="pixilart-drawing.png" type="image/png" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -37,9 +38,25 @@
       cursor: pointer;
       margin-left: 5px;
     }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    header img {
+      width: 40px;
+      height: 58px; /* preserve your pixel art aspect ratio */
+      image-rendering: pixelated; /* keep pixel art crisp */
+    }
   </style>
 </head>
 <body>
+
+  <header>
+    <img src="pixilart-drawing.png" alt="Site Icon" />
+    <h1>News Blog</h1>
+  </header>
 
   <input type="text" id="searchBar" placeholder="Search titles..." />
   <button id="searchBtn">Search</button>
@@ -54,9 +71,8 @@
     const searchBar = document.getElementById('searchBar');
     const searchBtn = document.getElementById('searchBtn');
 
-    // Function to render articles given a list
     function renderArticles(list) {
-      container.innerHTML = ''; // Clear current articles
+      container.innerHTML = '';
       if(list.length === 0){
         container.innerHTML = '<p>No articles found.</p>';
         return;
@@ -74,16 +90,12 @@
       });
     }
 
-    // Sort articles by date descending
     function sortByDateDesc(list) {
       return list.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
     }
 
-    // Simple search relevance by counting matching chars (basic)
-    // Returns array sorted by relevance
     function searchAndSortByRelevance(list, query) {
       const q = query.toLowerCase();
-      // Map each article to a score of how many chars in query appear in title in order
       function score(title) {
         let s = 0;
         let ti = 0;
@@ -107,15 +119,12 @@
         .map(x => x.article);
     }
 
-    // Initial render sorted by date
     let currentArticles = sortByDateDesc(articlesData);
     renderArticles(currentArticles);
 
-    // Search event
     function performSearch() {
       const query = searchBar.value.trim();
       if(query === '') {
-        // If empty, show all sorted by date
         currentArticles = sortByDateDesc(articlesData);
         renderArticles(currentArticles);
       } else {

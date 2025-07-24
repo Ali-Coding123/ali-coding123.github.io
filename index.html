@@ -2,75 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Simple Website</title>
+  <title>News Blog</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       max-width: 700px;
-      margin: 40px auto;
+      margin: 30px auto;
       padding: 0 20px;
-      background-color: #f9f9f9;
-      color: #333;
     }
-    header {
-      text-align: center;
-      margin-bottom: 40px;
+    .article {
+      border-bottom: 1px solid #ccc;
+      padding: 15px 0;
     }
-    h1 {
-      color: #2c3e50;
+    .header {
+      font-weight: bold;
+      font-size: 1.2em;
     }
-    nav a {
-      margin: 0 10px;
-      color: #2980b9;
-      text-decoration: none;
-    }
-    nav a:hover {
-      text-decoration: underline;
-    }
-    section {
-      margin-bottom: 30px;
-    }
-    footer {
-      text-align: center;
+    .meta {
+      color: gray;
       font-size: 0.9em;
-      color: #aaa;
-      border-top: 1px solid #ddd;
-      padding-top: 10px;
+      margin-bottom: 10px;
+    }
+    .basic-info {
+      margin-bottom: 10px;
+    }
+    .inside {
+      font-style: italic;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Welcome to My Website</h1>
-    <nav>
-      <a href="#about">About</a> |
-      <a href="#projects">Projects</a> |
-      <a href="#contact">Contact</a>
-    </nav>
-  </header>
 
-  <section id="about">
-    <h2>About Me</h2>
-    <p>Hello! I'm Ali, and this is my first simple HTML website. I'm learning how to create webpages and host them online. Thanks for visiting!</p>
-  </section>
+<div id="articles"></div>
 
-  <section id="projects">
-    <h2>Projects</h2>
-    <ul>
-      <li>Project 1: Simple Portfolio</li>
-      <li>Project 2: Interactive Quiz</li>
-      <li>Project 3: Weather App</li>
-    </ul>
-  </section>
+<script>
+  // Your data lists
+  const titles = [
+    "Exciting Launch of New Tech",
+    "Daily Market Update",
+    "Health Tips for Summer"
+  ];
+  
+  const authors = [
+    "Jane Doe",
+    "John Smith",
+    "Alex Johnson"
+  ];
+  
+  const dates = [
+    "2025-07-24",
+    "2025-07-23",
+    "2025-07-22"
+  ];
+  
+  const basicInfos = [
+    "A brief overview of the new technology introduced this week.",
+    "Highlights of today's market fluctuations.",
+    "Simple health tips to stay cool and hydrated."
+  ];
+  
+  const insides = [
+    "The new tech promises faster processing and better efficiency...",
+    "Stocks rose slightly after positive earnings reports from key companies...",
+    "Stay hydrated by drinking plenty of water and avoid prolonged sun exposure..."
+  ];
 
-  <section id="contact">
-    <h2>Contact</h2>
-    <p>You can reach me at <a href="mailto:ali@example.com">ali@example.com</a>.</p>
-  </section>
+  // Get the container div
+  const container = document.getElementById('articles');
 
-  <footer>
-    &copy; 2025 Ali's Website
-  </footer>
+  // Loop through the lists and create article blocks
+  for(let i = 0; i < titles.length; i++) {
+    const articleDiv = document.createElement('div');
+    articleDiv.className = 'article';
+
+    articleDiv.innerHTML = `
+      <div class="header">${titles[i]} by ${authors[i]} --------- ${dates[i]}</div>
+      <div class="basic-info">${basicInfos[i]}</div>
+      <div class="inside">${insides[i]}</div>
+    `;
+
+    container.appendChild(articleDiv);
+  }
+</script>
+
 </body>
 </html>

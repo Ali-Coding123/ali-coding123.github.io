@@ -11,4 +11,5 @@ const articlesData = [
    date: "2025-07-25",
    basicInfo : "Kartın Türkiye'deki birtakım problemler yüzünden açılmadı. Bunun sebebi paparanın oluşturduğu sorunlardı. Kart henüz açıklamayacak",
    inside: "Kart belirli bir açıklama gelene kadar açılmayacak. Sebebi ise marketlerden çıkarılmaması. Yani ertelendi veya kaldırıldı. İmza: dönem padişahlığı"
+  }
 ];

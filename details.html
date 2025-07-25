@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Makale Detayı</title>
+  <link rel="icon" href="pixilart-drawing.png" type="image/png">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,112 +17,49 @@
     }
     .header {
       font-weight: bold;
-      font-size: 1.4em;
+      font-size: 1.3em;
       margin-bottom: 10px;
     }
     .basic-info {
-      font-weight: bold;
       margin-bottom: 10px;
     }
     .inside {
       font-style: italic;
+      margin-top: 15px;
     }
-    .comments {
-      margin-top: 30px;
-    }
-    .comment {
-      border-top: 1px dashed #aaa;
-      padding: 10px 0;
-    }
-    #commentForm textarea, #commentForm input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-    }
-    #commentForm button {
-      padding: 8px 16px;
-      font-size: 1em;
-      cursor: pointer;
+    .not-found {
+      color: red;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div id="article"></div>
-  <div class="comments">
-    <h3>Yorumlar</h3>
-    <div id="commentList"></div>
-
-    <form id="commentForm">
-      <input type="text" id="comName" placeholder="Adınız" required />
-      <textarea id="comText" placeholder="Yorumunuz" required></textarea>
-      <button type="submit">Yorumu Gönder</button>
-    </form>
-  </div>
+  <div id="articleDetail"></div>
 
   <script src="datas.js"></script>
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const index = parseInt(urlParams.get("index"));
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get("id"), 10);
+    const detailContainer = document.getElementById("articleDetail");
 
-    const articleContainer = document.getElementById("article");
-    const commentList = document.getElementById("commentList");
-    const commentForm = document.getElementById("commentForm");
-    const comNameInput = document.getElementById("comName");
-    const comTextInput = document.getElementById("comText");
-
-    let comments = JSON.parse(localStorage.getItem("comments") || "{}");
-
-    if (!articlesData[index]) {
-      articleContainer.innerHTML = `<p style="color:red;">Makale bulunamadı veya silinmiş olabilir.</p>`;
-      // otomatik silme
-      if (comments[index]) {
-        delete comments[index];
-        localStorage.setItem("comments", JSON.stringify(comments));
-      }
+    if (isNaN(id) || id < 0 || id >= articlesData.length) {
+      detailContainer.innerHTML = '<p class="not-found">Geçersiz veya eksik makale numarası.</p>';
     } else {
-      const a = articlesData[index];
-      articleContainer.innerHTML = `
-        <div class="article">
-          <div class="header">${a.title}</div>
-          <div class="basic-info">Yazar: ${a.author} | Tarih: ${a.date}</div>
-          <div class="inside">${a.inside}</div>
-        </div>
-      `;
+      const article = articlesData[id];
+      if (!article || !article.title) {
+        detailContainer.innerHTML = '<p class="not-found">Makale yüklenemedi.</p>';
+      } else {
+        detailContainer.innerHTML = `
+          <div class="article">
+            <div class="header">${article.title}</div>
+            <div><strong>Yazar:</strong> ${article.author}</div>
+            <div><strong>Tarih:</strong> ${article.date}</div>
+            <div class="basic-info"><strong>Özet:</strong> ${article.basicInfo || "Yok"}</div>
+            <div class="inside">${article.inside}</div>
+          </div>
+        `;
+      }
     }
-
-    function renderComments() {
-      const list = comments[index] || [];
-      commentList.innerHTML = list.map(c => `
-        <div class="comment">
-          <strong>${c.name}</strong> | <small>${c.time}</small><br />
-          ${c.text}
-        </div>
-      `).join("");
-    }
-
-    commentForm.addEventListener("submit", function (e) {
-      e.preventDefault();
-      const name = comNameInput.value.trim();
-      const text = comTextInput.value.trim();
-      if (!name || !text) return;
-
-      const comment = {
-        name,
-        text,
-        time: new Date().toLocaleString("tr-TR")
-      };
-
-      if (!comments[index]) comments[index] = [];
-      comments[index].push(comment);
-      localStorage.setItem("comments", JSON.stringify(comments));
-
-      comNameInput.value = "";
-      comTextInput.value = "";
-      renderComments();
-    });
-
-    renderComments();
   </script>
 </body>
 </html>

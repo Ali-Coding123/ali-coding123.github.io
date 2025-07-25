@@ -3,234 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <title>Haber Blogu - Başlıklar</title>
+  <link rel="icon" href="pixilart-drawing.png" type="image/png" />
   <style>
     body {
       font-family: Arial, sans-serif;
       max-width: 700px;
       margin: 30px auto;
-      padding: 20px;
+      padding: 0 20px;
     }
-    h1 {
-      margin-bottom: 15px;
+    .baslik {
+      font-size: 1.1em;
+      margin-bottom: 10px;
     }
-    #addArticleBtn {
-      margin-bottom: 20px;
-      padding: 10px 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    #addArticleBtn:hover {
-      background-color: #0056b3;
-    }
-    #searchBar {
-      width: 100%;
-      padding: 8px;
-      font-size: 1em;
-      box-sizing: border-box;
-      margin-bottom: 20px;
-    }
-    .article-title {
-      cursor: pointer;
-      padding: 8px 0;
-      border-bottom: 1px solid #ccc;
-    }
-    .article-title:hover {
-      color: #007bff;
-      text-decoration: underline;
-    }
-    .article-date {
-      float: right;
-      color: gray;
+    .tarih {
       font-size: 0.9em;
-    }
-    #addArticleForm {
-      display: none;
+      color: gray;
       margin-bottom: 20px;
-      border: 1px solid #ccc;
-      padding: 15px;
-      border-radius: 6px;
-      background-color: #f9f9f9;
     }
-    #addArticleForm label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    #addArticleForm input[type="text"],
-    #addArticleForm textarea {
+    #aramaKutusu {
+      margin-bottom: 20px;
       width: 100%;
       padding: 8px;
-      box-sizing: border-box;
-      margin-top: 5px;
       font-size: 1em;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      resize: vertical;
+      box-sizing: border-box;
     }
-    #addArticleForm button {
-      margin-top: 15px;
-      padding: 10px 15px;
-      background-color: #28a745;
-      color: white;
-      font-weight: bold;
-      border: none;
-      border-radius: 4px;
+    #aramaButonu {
+      padding: 8px 12px;
+      font-size: 1em;
       cursor: pointer;
+      margin-left: 5px;
     }
-    #addArticleForm button:hover {
-      background-color: #1e7e34;
+    a {
+      color: black;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
 
-  <h1>Haber Blogu - Başlıklar</h1>
+  <input type="text" id="aramaKutusu" placeholder="Başlık ara..." />
+  <button id="aramaButonu">Ara</button>
 
-  <button id="addArticleBtn">Kendi Makaleni Yaz</button>
-
-  <form id="addArticleForm">
-    <label for="authorInput">Adınız:</label>
-    <input type="text" id="authorInput" required />
-
-    <label for="titleInput">Başlık:</label>
-    <input type="text" id="titleInput" required />
-
-    <label for="basicInfoInput">Temel Bilgi:</label>
-    <textarea id="basicInfoInput" rows="3" required></textarea>
-
-    <label for="insideInput">İçerik:</label>
-    <textarea id="insideInput" rows="5" required></textarea>
-
-    <button type="submit">Ekle</button>
-  </form>
-
-  <input type="text" id="searchBar" placeholder="Başlıklarda ara..." />
-
-  <div id="articlesContainer"></div>
+  <div id="liste"></div>
 
   <script src="datas.js?v=2"></script>
+
   <script>
-    // Load user articles from localStorage or empty array
-    let userArticles = JSON.parse(localStorage.getItem('userArticles') || '[]');
+    const listeDiv = document.getElementById('liste');
+    const aramaKutusu = document.getElementById('aramaKutusu');
+    const aramaButonu = document.getElementById('aramaButonu');
 
-    // Combine static and user articles
-    let allArticles = articlesData.concat(userArticles);
-
-    const articlesContainer = document.getElementById('articlesContainer');
-    const searchBar = document.getElementById('searchBar');
-    const addArticleBtn = document.getElementById('addArticleBtn');
-    const addArticleForm = document.getElementById('addArticleForm');
-
-    // Show/hide add article form
-    addArticleBtn.addEventListener('click', () => {
-      addArticleForm.style.display = addArticleForm.style.display === 'block' ? 'none' : 'block';
-    });
-
-    // Render articles titles with date, clickable to details.html?article=index
-    function renderArticles(list) {
-      articlesContainer.innerHTML = '';
-      if(list.length === 0) {
-        articlesContainer.innerHTML = '<p>Makale bulunamadı.</p>';
-        return;
-      }
-      list.forEach((article, idx) => {
-        const div = document.createElement('div');
-        div.className = 'article-title';
-        // We show the article index relative to combined list
-        // So link uses that index
-        div.innerHTML = `
-          ${article.title}
-          <span class="article-date">${article.date}</span>
-        `;
-        div.addEventListener('click', () => {
-          window.open(`details.html?article=${idx}`, '_blank');
-        });
-        articlesContainer.appendChild(div);
-      });
+    // Yeniye göre sırala (date descending)
+    function tariheGoreSirala(liste) {
+      return liste.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
     }
 
-    // Sort articles by date descending
-    function sortByDateDesc(list) {
-      return list.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
-    }
-
-    // Simple search function: sort titles by relevance to query
-    function searchAndSortByRelevance(list, query) {
-      const q = query.toLowerCase();
-      function score(title) {
-        let s = 0, ti = 0;
-        for(let qi=0; qi < q.length; qi++) {
-          while(ti < title.length && title[ti].toLowerCase() !== q[qi]) ti++;
-          if(ti < title.length && title[ti].toLowerCase() === q[qi]) {
-            s++;
+    // Arama ile sırala (en çok eşleşen önce)
+    function aramaylaSirala(liste, sorgu) {
+      const q = sorgu.toLowerCase();
+      function puanla(baslik) {
+        let puan = 0, ti = 0;
+        for (let qi = 0; qi < q.length; qi++) {
+          while (ti < baslik.length && baslik[ti].toLowerCase() !== q[qi]) ti++;
+          if (ti < baslik.length && baslik[ti].toLowerCase() === q[qi]) {
+            puan++;
             ti++;
           } else break;
         }
-        return s;
+        return puan;
       }
-      return list
-        .map((article, idx) => ({article, idx, score: score(article.title)}))
-        .filter(x => x.score > 0)
-        .sort((a,b) => b.score - a.score)
-        .map(x => x.article);
+
+      return liste
+        .map(makale => ({ makale, puan: puanla(makale.title) }))
+        .filter(x => x.puan > 0)
+        .sort((a, b) => b.puan - a.puan)
+        .map(x => x.makale);
     }
 
-    // Initial render
-    let currentArticles = sortByDateDesc(allArticles);
-    renderArticles(currentArticles);
+    function listele(makaleler) {
+      listeDiv.innerHTML = '';
+      if (makaleler.length === 0) {
+        listeDiv.innerHTML = '<p>Hiç makale bulunamadı.</p>';
+        return;
+      }
+      makaleler.forEach((m, index) => {
+        const link = document.createElement('a');
+        link.href = `details.html?index=${index}`;
+        link.target = '_blank';
+        link.innerHTML = `
+          <div class="baslik">${m.title}</div>
+          <div class="tarih">${m.date}</div>
+        `;
+        listeDiv.appendChild(link);
+      });
+    }
 
-    // Search event
-    searchBar.addEventListener('input', () => {
-      const query = searchBar.value.trim();
-      if(query === '') {
-        currentArticles = sortByDateDesc(allArticles);
-        renderArticles(currentArticles);
+    let guncelListe = tariheGoreSirala(articlesData);
+    listele(guncelListe);
+
+    aramaButonu.addEventListener('click', () => {
+      const sorgu = aramaKutusu.value.trim();
+      if (sorgu === '') {
+        guncelListe = tariheGoreSirala(articlesData);
+        listele(guncelListe);
       } else {
-        const results = searchAndSortByRelevance(allArticles, query);
-        renderArticles(results);
+        const sonuc = aramaylaSirala(articlesData, sorgu);
+        listele(sonuc);
       }
     });
 
-    // Handle add article form submission
-    addArticleForm.addEventListener('submit', e => {
-      e.preventDefault();
-
-      const author = document.getElementById('authorInput').value.trim();
-      const title = document.getElementById('titleInput').value.trim();
-      const basicInfo = document.getElementById('basicInfoInput').value.trim();
-      const inside = document.getElementById('insideInput').value.trim();
-
-      if(!author || !title || !basicInfo || !inside) return alert('Lütfen tüm alanları doldurun.');
-
-      // Use today's date in YYYY-MM-DD format
-      const today = new Date();
-      const dateStr = today.toISOString().slice(0,10);
-
-      const newArticle = {
-        author,
-        title,
-        basicInfo,
-        inside,
-        date: dateStr
-      };
-
-      // Add to userArticles array and save
-      userArticles.push(newArticle);
-      localStorage.setItem('userArticles', JSON.stringify(userArticles));
-
-      // Update combined list and re-render
-      allArticles = articlesData.concat(userArticles);
-      currentArticles = sortByDateDesc(allArticles);
-      renderArticles(currentArticles);
-
-      // Clear form
-      addArticleForm.reset();
-      addArticleForm.style.display = 'none';
+    aramaKutusu.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') aramaButonu.click();
     });
   </script>
+
 </body>
 </html>
-

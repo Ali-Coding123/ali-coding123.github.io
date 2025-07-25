@@ -2,201 +2,126 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <title>Makale Detayları</title>
+  <title>Makale Detayı</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       max-width: 700px;
       margin: 30px auto;
-      padding: 20px;
+      padding: 0 20px;
     }
-    h1 {
+    .article {
+      border-bottom: 1px solid #ccc;
+      padding: 15px 0;
+    }
+    .header {
+      font-weight: bold;
+      font-size: 1.4em;
       margin-bottom: 10px;
     }
-    .meta {
-      color: gray;
-      margin-bottom: 20px;
-    }
-    .basic-info, .inside {
-      margin-bottom: 15px;
-    }
-    #comments {
-      margin-top: 40px;
-    }
-    #comments h2 {
+    .basic-info {
+      font-weight: bold;
       margin-bottom: 10px;
+    }
+    .inside {
+      font-style: italic;
+    }
+    .comments {
+      margin-top: 30px;
     }
     .comment {
-      border-top: 1px solid #ccc;
+      border-top: 1px dashed #aaa;
       padding: 10px 0;
     }
-    .comment-header {
-      font-weight: bold;
-      font-size: 0.9em;
-      margin-bottom: 5px;
-      color: #555;
-    }
-    #commentForm {
-      margin-top: 30px;
-      border: 1px solid #ccc;
-      padding: 15px;
-      border-radius: 6px;
-      background-color: #f9f9f9;
-    }
-    #commentForm label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    #commentForm input[type="text"],
-    #commentForm textarea {
+    #commentForm textarea, #commentForm input {
       width: 100%;
       padding: 8px;
+      margin-bottom: 10px;
       box-sizing: border-box;
-      margin-top: 5px;
-      font-size: 1em;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      resize: vertical;
     }
     #commentForm button {
-      margin-top: 15px;
-      padding: 10px 15px;
-      background-color: #28a745;
-      color: white;
-      font-weight: bold;
-      border: none;
-      border-radius: 4px;
+      padding: 8px 16px;
+      font-size: 1em;
       cursor: pointer;
-    }
-    #commentForm button:hover {
-      background-color: #1e7e34;
     }
   </style>
 </head>
 <body>
-
-  <div id="content">
-    <p>Yükleniyor...</p>
-  </div>
-
-  <div id="comments">
-    <h2>Yorumlar</h2>
+  <div id="article"></div>
+  <div class="comments">
+    <h3>Yorumlar</h3>
     <div id="commentList"></div>
+
+    <form id="commentForm">
+      <input type="text" id="comName" placeholder="Adınız" required />
+      <textarea id="comText" placeholder="Yorumunuz" required></textarea>
+      <button type="submit">Yorumu Gönder</button>
+    </form>
   </div>
-
-  <form id="commentForm">
-    <h3>Yeni Yorum Ekle</h3>
-    <label for="comName">Adınız:</label>
-    <input type="text" id="comName" required />
-
-    <label for="comText">Yorumunuz:</label>
-    <textarea id="comText" rows="4" required></textarea>
-
-    <button type="submit">Gönder</button>
-  </form>
 
   <script src="datas.js"></script>
   <script>
-    // Helper to get URL param
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const index = parseInt(urlParams.get("index"));
 
-    const contentDiv = document.getElementById('content');
-    const commentListDiv = document.getElementById('commentList');
-    const commentForm = document.getElementById('commentForm');
-    const comNameInput = document.getElementById('comName');
-    const comTextInput = document.getElementById('comText');
+    const articleContainer = document.getElementById("article");
+    const commentList = document.getElementById("commentList");
+    const commentForm = document.getElementById("commentForm");
+    const comNameInput = document.getElementById("comName");
+    const comTextInput = document.getElementById("comText");
 
-    // Load user added articles safely from localStorage
-    let storedArticles = [];
-    try {
-      storedArticles = JSON.parse(localStorage.getItem('userArticles')) || [];
-    } catch {
-      storedArticles = [];
-    }
+    let comments = JSON.parse(localStorage.getItem("comments") || "{}");
 
-    // Combine static and user articles
-    const fullArticles = articlesData.concat(storedArticles);
-
-    // Get article index from URL
-    const articleIndexRaw = getQueryParam('article');
-    const articleIndex = articleIndexRaw !== null ? parseInt(articleIndexRaw, 10) : null;
-
-    if(articleIndex === null || isNaN(articleIndex) || articleIndex < 0 || articleIndex >= fullArticles.length) {
-      // Invalid index: clear stored articles and show message
-      localStorage.removeItem('userArticles');
-
-      contentDiv.innerHTML = `
-        <p>Geçersiz veya eksik makale numarası. Kaydedilen makaleler temizlendi.</p>
-        <p>Lütfen <a href="index.html">ana sayfaya dönün</a> ve tekrar deneyin.</p>
-      `;
-      commentForm.style.display = 'none';
-    } else {
-      // Valid article - show details
-      const article = fullArticles[articleIndex];
-      contentDiv.innerHTML = `
-        <h1>${article.title}</h1>
-        <div class="meta">Yazar: ${article.author} — Tarih: ${article.date}</div>
-        <div class="basic-info"><strong>Temel Bilgi:</strong> ${article.basicInfo}</div>
-        <div class="inside"><strong>İçerik:</strong> ${article.inside}</div>
-      `;
-
-      // Load comments for this article from localStorage
-      const storageKey = `comments_article_${articleIndex}`;
-      let comments = JSON.parse(localStorage.getItem(storageKey)) || [];
-
-      function renderComments() {
-        if(comments.length === 0) {
-          commentListDiv.innerHTML = '<p>Henüz yorum yok.</p>';
-          return;
-        }
-        commentListDiv.innerHTML = '';
-        comments.forEach(c => {
-          const div = document.createElement('div');
-          div.className = 'comment';
-          div.innerHTML = `<div class="comment-header">${c.name}, ${c.date}</div><div>${c.text}</div>`;
-          commentListDiv.appendChild(div);
-        });
+    if (!articlesData[index]) {
+      articleContainer.innerHTML = `<p style="color:red;">Makale bulunamadı veya silinmiş olabilir.</p>`;
+      // otomatik silme
+      if (comments[index]) {
+        delete comments[index];
+        localStorage.setItem("comments", JSON.stringify(comments));
       }
-
-      renderComments();
-
-      // Handle new comment submission
-      commentForm.addEventListener('submit', e => {
-        e.preventDefault();
-
-        const name = comNameInput.value.trim();
-        const text = comTextInput.value.trim();
-        if(!name || !text) return;
-
-        const now = new Date();
-        const formattedDate = now.toLocaleString('tr-TR', {
-          year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit'
-        });
-
-        comments.push({
-          name,
-          text,
-          date: formattedDate
-        });
-
-        // Save comments to localStorage
-        localStorage.setItem(storageKey, JSON.stringify(comments));
-
-        // Clear inputs
-        comNameInput.value = '';
-        comTextInput.value = '';
-
-        renderComments();
-      });
+    } else {
+      const a = articlesData[index];
+      articleContainer.innerHTML = `
+        <div class="article">
+          <div class="header">${a.title}</div>
+          <div class="basic-info">Yazar: ${a.author} | Tarih: ${a.date}</div>
+          <div class="inside">${a.inside}</div>
+        </div>
+      `;
     }
-  </script>
 
+    function renderComments() {
+      const list = comments[index] || [];
+      commentList.innerHTML = list.map(c => `
+        <div class="comment">
+          <strong>${c.name}</strong> | <small>${c.time}</small><br />
+          ${c.text}
+        </div>
+      `).join("");
+    }
+
+    commentForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = comNameInput.value.trim();
+      const text = comTextInput.value.trim();
+      if (!name || !text) return;
+
+      const comment = {
+        name,
+        text,
+        time: new Date().toLocaleString("tr-TR")
+      };
+
+      if (!comments[index]) comments[index] = [];
+      comments[index].push(comment);
+      localStorage.setItem("comments", JSON.stringify(comments));
+
+      comNameInput.value = "";
+      comTextInput.value = "";
+      renderComments();
+    });
+
+    renderComments();
+  </script>
 </body>
 </html>
-
-

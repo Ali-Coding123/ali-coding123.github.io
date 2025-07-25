@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Haber Blogu - Başlıklar</title>
+  <meta charset="UTF-8">
+  <title>Haberler</title>
   <link rel="icon" href="pixilart-drawing.png" type="image/png" />
   <style>
     body {
@@ -11,114 +11,105 @@
       margin: 30px auto;
       padding: 0 20px;
     }
-    .baslik {
+    .article {
+      border-bottom: 1px solid #ccc;
+      padding: 10px 0;
+    }
+    .header {
+      font-weight: bold;
       font-size: 1.1em;
-      margin-bottom: 10px;
+      cursor: pointer;
     }
-    .tarih {
-      font-size: 0.9em;
-      color: gray;
-      margin-bottom: 20px;
-    }
-    #aramaKutusu {
+    #searchBar {
       margin-bottom: 20px;
       width: 100%;
       padding: 8px;
       font-size: 1em;
       box-sizing: border-box;
     }
-    #aramaButonu {
+    #searchBtn {
       padding: 8px 12px;
       font-size: 1em;
       cursor: pointer;
-      margin-left: 5px;
-    }
-    a {
-      color: black;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
+      margin-top: 5px;
     }
   </style>
 </head>
 <body>
 
-  <input type="text" id="aramaKutusu" placeholder="Başlık ara..." />
-  <button id="aramaButonu">Ara</button>
+  <h1>Haber Blogu</h1>
 
-  <div id="liste"></div>
+  <input type="text" id="searchBar" placeholder="Başlık ara..." />
+  <button id="searchBtn">Ara</button>
 
-  <script src="datas.js?v=2"></script>
+  <div id="articles"></div>
 
+  <script src="datas.js"></script>
   <script>
-    const listeDiv = document.getElementById('liste');
-    const aramaKutusu = document.getElementById('aramaKutusu');
-    const aramaButonu = document.getElementById('aramaButonu');
+    const container = document.getElementById('articles');
+    const searchBar = document.getElementById('searchBar');
+    const searchBtn = document.getElementById('searchBtn');
 
-    // Yeniye göre sırala (date descending)
-    function tariheGoreSirala(liste) {
-      return liste.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+    // Tarihe göre sırala (en yeni en üstte)
+    function sortByDateDesc(list) {
+      return list.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
     }
 
-    // Arama ile sırala (en çok eşleşen önce)
-    function aramaylaSirala(liste, sorgu) {
-      const q = sorgu.toLowerCase();
-      function puanla(baslik) {
-        let puan = 0, ti = 0;
-        for (let qi = 0; qi < q.length; qi++) {
-          while (ti < baslik.length && baslik[ti].toLowerCase() !== q[qi]) ti++;
-          if (ti < baslik.length && baslik[ti].toLowerCase() === q[qi]) {
-            puan++;
-            ti++;
+    // Arama uygunluk skoru (basit)
+    function searchAndSortByRelevance(list, query) {
+      const q = query.toLowerCase();
+      function score(title) {
+        let s = 0;
+        let ti = 0;
+        for(let qi=0; qi < q.length; qi++) {
+          while(ti < title.length && title[ti].toLowerCase() !== q[qi]) ti++;
+          if(ti < title.length && title[ti].toLowerCase() === q[qi]) {
+            s++; ti++;
           } else break;
         }
-        return puan;
+        return s;
       }
-
-      return liste
-        .map(makale => ({ makale, puan: puanla(makale.title) }))
-        .filter(x => x.puan > 0)
-        .sort((a, b) => b.puan - a.puan)
-        .map(x => x.makale);
+      return list.map((article, index) => ({ article, score: score(article.title), index }))
+                 .filter(x => x.score > 0)
+                 .sort((a,b) => b.score - a.score)
+                 .map(x => ({...x.article, _id: x.index}));
     }
 
-    function listele(makaleler) {
-      listeDiv.innerHTML = '';
-      if (makaleler.length === 0) {
-        listeDiv.innerHTML = '<p>Hiç makale bulunamadı.</p>';
+    function renderArticles(list) {
+      container.innerHTML = '';
+      if (list.length === 0) {
+        container.innerHTML = '<p>Makale bulunamadı.</p>';
         return;
       }
-      makaleler.forEach((m, index) => {
-        const link = document.createElement('a');
-        link.href = `details.html?index=${index}`;
-        link.target = '_blank';
-        link.innerHTML = `
-          <div class="baslik">${m.title}</div>
-          <div class="tarih">${m.date}</div>
-        `;
-        listeDiv.appendChild(link);
+      list.forEach((article, index) => {
+        const div = document.createElement('div');
+        div.className = 'article';
+        div.innerHTML = `<div class="header">${article.title} <span style="font-size: 0.8em; color: gray;">(${article.date})</span></div>`;
+        div.addEventListener('click', () => {
+          window.open(`details.html?id=${index}`, '_blank');
+        });
+        container.appendChild(div);
       });
     }
 
-    let guncelListe = tariheGoreSirala(articlesData);
-    listele(guncelListe);
+    let currentArticles = sortByDateDesc(articlesData);
+    renderArticles(currentArticles);
 
-    aramaButonu.addEventListener('click', () => {
-      const sorgu = aramaKutusu.value.trim();
-      if (sorgu === '') {
-        guncelListe = tariheGoreSirala(articlesData);
-        listele(guncelListe);
+    function performSearch() {
+      const query = searchBar.value.trim();
+      if(query === '') {
+        currentArticles = sortByDateDesc(articlesData);
+        renderArticles(currentArticles);
       } else {
-        const sonuc = aramaylaSirala(articlesData, sorgu);
-        listele(sonuc);
+        const results = searchAndSortByRelevance(articlesData, query);
+        renderArticles(results);
       }
-    });
+    }
 
-    aramaKutusu.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') aramaButonu.click();
+    searchBtn.addEventListener('click', performSearch);
+    searchBar.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') performSearch();
     });
   </script>
-
 </body>
 </html>

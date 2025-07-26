@@ -1,4 +1,10 @@
 const articlesData = [
+  {title: "Yeni Özellik Eklendi!",
+   author: "Ali Yılmaz Buzcu (4. Dönem Padişahı)",
+   date: "2025-07-26",
+   basicInfo: "Yeni özellik eklendi!",
+   inside: "Artık yeni makale yapmak isterseniz yukarıdaki 'Yeni Makale İsteği' adlı düğmeye basıp, açılan ekranı doldurarak bana makale isteğinizi atabilirsiniz! Bu şekilde bende makalenizi en kısa sürede ekleyebilirim!"
+  },
   {title: "Divan kartı açılmadı",
    author: "Kutay (4. Dönem Padişahı)",
    date: "2025-07-25",
